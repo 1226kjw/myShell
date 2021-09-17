@@ -37,13 +37,13 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			}
 			else
 			{
-				for (int i = 1; i < cmd.size(); i++)
+				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
 				{
 					size_t pos = 0;
-					string key = cmd[i].substr(0, pos = cmd[i].find("="));
+					string key = i->substr(0, pos = i->find("="));
 					string value;
 					if (pos != string::npos)
-						value = cmd[i].substr(pos + 1);
+						value = i->substr(pos + 1);
 					envm[key] = value;
 				}
 			}
@@ -53,8 +53,8 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 	{//unset
 		"unset",
 		[](vector<string> cmd)->int {
-			for (int i = 1; i < cmd.size(); i++)
-				envm.erase(cmd[i]);
+			for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
+				envm.erase(*i);
 			return 0;
 		}
 	},
@@ -68,13 +68,13 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			}
 			else
 			{
-				for (int i = 1; i < cmd.size(); i++)
+				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
 				{
 					size_t pos = 0;
-					string key = cmd[i].substr(0, pos = cmd[i].find("="));
+					string key = i->substr(0, pos = i->find("="));
 					string value;
 					if (pos != string::npos)
-						value = cmd[i].substr(pos + 1);
+						value = i->substr(pos + 1);
 					if (isin(value.front(), "'\"") && value.front() == value.back())
 						value = value.substr(1, value.size()-2);
 					alias[key] = value;
@@ -86,15 +86,14 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 	{//unalias
 		"unalias",
 		[](vector<string> cmd)->int {
-			for (int i = 1; i < cmd.size(); i++)
-				alias.erase(cmd[i]);
+			for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
+				alias.erase(*i);
 			return 0;
 		}
 	},
 	{//jd
 		"jd",
 		[](vector<string> cmd)->int {
-			int res = 0;
 			if (cmd.size() == 1)
 			{
 				for (auto i = jd.rbegin(); i != jd.rend(); i++)
@@ -116,7 +115,7 @@ Command::Command() {}
 Command::Command(string raw, bool isfirst, bool islast): valid(1), isfirst(isfirst), islast(islast)
 {
 	char quot = 0;
-	for (int i = 0; i < raw.size(); i++)
+	for (size_t i = 0; i < raw.size(); i++)
 	{
 		if (!quot && isin(raw[i], "'\""))
 			quot = raw[i];
@@ -262,4 +261,5 @@ int Command::execute(void)
 		}
 		return WEXITSTATUS(status);
 	}
+	return -1;
 }

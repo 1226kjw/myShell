@@ -18,9 +18,9 @@ int run_cmd(string cmd)
 	vector<string> pipe_split = split(cmd, "|");
 
 	Command *cmd_list = new Command[pipe_split.size()];
-	for (int i = 0; i < pipe_split.size(); i++)
+	for (size_t i = 0; i < pipe_split.size(); i++)
 		cmd_list[i] = Command(pipe_split[i], i==0, i==pipe_split.size()-1);
-	for (int i = 0; i < pipe_split.size(); i++)
+	for (size_t i = 0; i < pipe_split.size(); i++)
 		ret = cmd_list[i].execute();
 	delete[] cmd_list;
 	Command::ss = stringstream("");
@@ -30,7 +30,7 @@ int run_cmd(string cmd)
 string quot_isinvalid(string s)
 {
 	char quot = 0;
-	for (int i = 0; i < s.size(); i++)
+	for (size_t i = 0; i < s.size(); i++)
 	{
 		if (!quot && isin(s[i], "\'\""))
 			quot = s[i];
@@ -51,7 +51,7 @@ string quot_isinvalid(string s)
 	return "";
 }
 
-int main(int argc, char **argv, char **envp)
+int main(int, char**, char **envp)
 {
 	alias["ls"] = "ls --color=tty";
 	char *tmp = getcwd(0, 0);

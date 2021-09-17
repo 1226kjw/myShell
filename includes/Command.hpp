@@ -28,7 +28,7 @@ public:
 	string raw_command;
 	vector<pair<int, string>> redin;	// <, <<
 	vector<pair<int, string>> redout;	// >, >>
-	static map<string, std::function<int(char **)>> builtin;
+	static map<string, std::function<int(vector<string>)>> builtin;
 	string out_random;
 	string in_random;
 	static stringstream ss;

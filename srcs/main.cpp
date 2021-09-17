@@ -1,6 +1,8 @@
 #include "myshell.hpp"
 
 map<string, string> envm;
+map<string, string> alias;
+vector<pair<string, string>> jd;
 int	ret = 0;
 
 string git_check(void)
@@ -51,6 +53,11 @@ string quot_isinvalid(string s)
 
 int main(int argc, char **argv, char **envp)
 {
+	alias["ls"] = "ls --color=tty";
+	char *tmp = getcwd(0, 0);
+	string stmp(tmp);
+	free(tmp);
+	jd.push_back(make_pair(stmp.substr(stmp.rfind("/") + 1), stmp));
 	char *cline = 0;
 	for (int i = 0; envp[i]; i++)
 	{

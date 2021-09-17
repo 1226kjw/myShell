@@ -1,18 +1,112 @@
 #include "myshell.hpp"
 
 extern int ret;
+extern map<string, string> envm;
+extern map<string, string> alias;
+extern vector<pair<string, string>> jd;
 
 stringstream Command::ss;
-map<string, std::function<int(char **)>> Command::builtin = {
-	{
+map<string, std::function<int(vector<string>)>> Command::builtin = {
+	{//cd
 		"cd",
-		[](char **cmd)->int {
+		[](vector<string> cmd)->int {
 			int res = 0;
-			if (cmd[1] == 0)
-				res = chdir("~");
+			if (cmd.size() == 1 || cmd[1] == "~")
+				res = chdir(envm["HOME"].c_str());
 			else
-				res = chdir(cmd[1]);
+				res = chdir(cmd[1].c_str());
+			if (res == 0)
+			{
+				char *tmp = getcwd(0, 0);
+				string stmp(tmp);
+				free(tmp);
+				jd.push_back(make_pair(stmp.substr(stmp.rfind("/") + 1), stmp));
+			}
+			else
+				cerr << SHELL << ": " << strerror(errno) << ": " << cmd[1] << endl;
 			return res;
+		}
+	},
+	{//export
+		"export",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+			{
+				for (auto i : envm)
+					cout << i.first << "=" << i.second << endl;
+			}
+			else
+			{
+				for (int i = 1; i < cmd.size(); i++)
+				{
+					size_t pos = 0;
+					string key = cmd[i].substr(0, pos = cmd[i].find("="));
+					string value;
+					if (pos != string::npos)
+						value = cmd[i].substr(pos + 1);
+					envm[key] = value;
+				}
+			}
+			return 0;
+		}
+	},
+	{//unset
+		"unset",
+		[](vector<string> cmd)->int {
+			for (int i = 1; i < cmd.size(); i++)
+				envm.erase(cmd[i]);
+			return 0;
+		}
+	},
+	{//alias
+		"alias",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+			{
+				for (auto i : alias)
+					cout << i.first << "='" << i.second << "'" << endl;
+			}
+			else
+			{
+				for (int i = 1; i < cmd.size(); i++)
+				{
+					size_t pos = 0;
+					string key = cmd[i].substr(0, pos = cmd[i].find("="));
+					string value;
+					if (pos != string::npos)
+						value = cmd[i].substr(pos + 1);
+					if (isin(value.front(), "'\"") && value.front() == value.back())
+						value = value.substr(1, value.size()-2);
+					alias[key] = value;
+				}
+			}
+			return 0;
+		}
+	},
+	{//unalias
+		"unalias",
+		[](vector<string> cmd)->int {
+			for (int i = 1; i < cmd.size(); i++)
+				alias.erase(cmd[i]);
+			return 0;
+		}
+	},
+	{//jd
+		"jd",
+		[](vector<string> cmd)->int {
+			int res = 0;
+			if (cmd.size() == 1)
+			{
+				for (auto i = jd.rbegin(); i != jd.rend(); i++)
+					cout << i->first << "=" << i->second << endl;
+				return 0;
+			}
+			auto jump = std::find_if(jd.rbegin(), jd.rend(),
+						[cmd](auto i) {return i.first == cmd[1];});
+			if (jd.rend() != jump)
+				return chdir(jump->second.c_str());
+			else
+				return builtin["cd"](cmd);
 		}
 	}
 };
@@ -75,17 +169,22 @@ int Command::execute(void)
 		ss = stringstream("");
 		return 1;
 	}
-	do
-	{
-		out_random = "."+random_string(10);
-	} while (access(out_random.c_str(), F_OK) == 0);
-	do
-	{
-		in_random = "."+random_string(10);
-	} while (access(in_random.c_str(), F_OK) == 0 || out_random == in_random);
+	do {out_random = "."+random_string(10);} while (access(out_random.c_str(), F_OK) == 0);
+	do {in_random = "."+random_string(10);} while (access(in_random.c_str(), F_OK) == 0 || out_random == in_random);
 
-	pid_t pid = fork();
-	if (pid == 0)
+	vector<string> cmd_vec = split(raw_command, " ");
+	vector<string> cmd_alias;
+	if (alias.find(cmd_vec[0]) != alias.end())
+	{
+		cmd_alias = split(alias[cmd_vec[0]], " ");
+		cmd_vec.erase(cmd_vec.begin());
+		int pos = 0;
+		for (auto i : cmd_alias)
+			cmd_vec.insert(cmd_vec.begin() + pos++, i);
+	}
+	if (builtin.find(cmd_vec[0]) != builtin.end())
+		return builtin[cmd_vec[0]](cmd_vec);
+	else if (pid_t pid = fork() == 0)
 	{
 		for (auto i : redin)
 		{

@@ -7,6 +7,7 @@
 # include <string>
 # include <vector>
 # include <map>
+# include <set>
 # include <utility>
 # include <algorithm>
 # include <unistd.h>
@@ -33,6 +34,7 @@ using std::endl;
 using std::string;
 using std::vector;
 using std::map;
+using std::set;
 using std::stringstream;
 using std::cerr;
 

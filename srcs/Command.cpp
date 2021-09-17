@@ -181,6 +181,76 @@ int Command::execute(void)
 		for (auto i : cmd_alias)
 			cmd_vec.insert(cmd_vec.begin() + pos++, i);
 	}
+	auto func = [this](string s)->string{
+		char quot = 0;
+		for (size_t i = 0; i < s.size(); i++)
+		{
+			if (!quot && isin(s[i], "'\""))
+			{
+				quot = s[i];
+				s = s.substr(0, i) + s.substr(i+1);
+				i--;
+			}
+			else if (quot && s[i] == quot)
+			{
+				s = s.substr(0, i) + s.substr(i+1);
+				quot = 0;
+				i--;
+			}
+			else if (s[i] == '$' && quot != '\'')
+			{
+				if (s[i+1] == '?')
+				{
+					s = s.substr(0, i - 1) + std::to_string(ret) + s.substr(i + 2);
+					i += std::to_string(ret).size() - 1;
+				}
+				else
+				{
+					int j = ++i;
+					bool flag = false;
+					if (s[i] == '{')
+					{
+						flag = true;
+						i++;
+					}
+					while (std::isalnum(s[i]) || s[i] == '_')
+						i++;
+					string key;
+					if (flag)
+					{
+						if (s[i] == '}')
+						{
+							key = s.substr(j + 1, i - j - 1);
+							i++;
+						}
+						else
+						{
+							cerr << SHELL << ": bad substitution" << endl;
+							ret = 1;
+							this->valid = 0;
+						}
+					}
+					else
+						key = s.substr(j, i - j);
+					string value;
+					if (key.size() > 0 && envm.find(key) != envm.end())
+						value = envm[key];
+					else if (key.size() > 0)
+						value = "";
+					else
+						value = "$";
+					s = s.substr(0, j-1) + value + s.substr(i);
+					i += value.size() - key.size() - 2;
+					if (flag)
+						i -= 2;
+				}
+			}
+		}
+		return s;
+	};
+	std::transform(redin.begin(), redin.end(), redin.begin(), [func](auto i){return make_pair(i.first, func(i.second));});
+	std::transform(redout.begin(), redout.end(), redout.begin(), [func](auto i){return make_pair(i.first, func(i.second));});
+	std::transform(cmd_vec.begin(), cmd_vec.end(), cmd_vec.begin(), [func](auto i){return func(i);});
 	if (builtin.find(cmd_vec[0]) != builtin.end())
 		return builtin[cmd_vec[0]](cmd_vec);
 	else if (pid_t pid = fork() == 0)
@@ -223,7 +293,7 @@ int Command::execute(void)
 			std::ifstream outf(out_random);
 			freopen(out_random.c_str(), "w", stdout);
 		}
-		char **cmd_arr = vec2cstr(split(raw_command, " "));
+		char **cmd_arr = vec2cstr(cmd_vec);
 		if (execvp(cmd_arr[0], cmd_arr) == -1)
 		{
 			if (errno == 2)

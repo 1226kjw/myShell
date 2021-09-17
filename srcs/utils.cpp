@@ -119,14 +119,3 @@ bool isin(string c, string s)
 {
 	return s.find(c) != string::npos;
 }
-
-string regex_replace(const string& input, const std::regex& regex,
-							std::function<string(std::smatch const&)> format)
-{
-	stringstream output;
-	std::sregex_iterator begin(input.begin(), input.end(), regex), end;
-	for(; begin != end; begin++)
-		output << begin->prefix() << format(*begin);
-	output << input.substr(input.size() - begin->position());
-	return output.str();
-}

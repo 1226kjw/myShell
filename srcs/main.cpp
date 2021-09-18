@@ -27,7 +27,7 @@ int run_cmd(string cmd)
 	return ret;
 }
 
-string quot_isinvalid(string s)
+string quot_isinvalid(string& s)
 {
 	char quot = 0;
 	for (size_t i = 0; i < s.size(); i++)
@@ -36,6 +36,8 @@ string quot_isinvalid(string s)
 			quot = s[i];
 		else if (quot && quot == s[i])
 			quot = 0;
+		if (!quot && (s[i] == '#' && (i == 0 || std::isspace(s[i-1]))))
+			s = s.substr(0, i);
 	}
 	switch (quot)
 	{
@@ -49,6 +51,22 @@ string quot_isinvalid(string s)
 		return "";
 	}
 	return "";
+}
+
+string makePrompt(void)
+{
+	string prompt = (ret==0 ? paintString("✓ ", COLOR_GREEN) : paintString("✘ ", COLOR_RED));
+	if (envm.find("USER") != envm.end())
+		prompt += paintString(envm["USER"], COLOR_GREEN);
+	else
+		prompt += paintString(SHELL, COLOR_GREEN);
+	prompt += ":";
+	char *cwd = getcwd(0, 0);
+	prompt += paintString(cwd, COLOR_BLUE);
+	free(cwd);
+	prompt += git_check();
+	prompt += "$ ";
+	return (prompt);
 }
 
 int main(int, char**, char **envp)
@@ -69,13 +87,10 @@ int main(int, char**, char **envp)
 	{
 		string quot_type;
 		string line;
-		char *cwd = getcwd(0, 0);
-		cline = readline(((ret==0?paintString("✓", COLOR_GREEN):paintString("✘", COLOR_RED))
-							+ paintString(cwd, COLOR_BLUE) + git_check() + "$ ").c_str());
+		cline = readline(makePrompt().c_str());
 		if (cline == 0 || (line = cline) == "exit")
 		{
 			free(cline);
-			free(cwd);
 			exit(0);
 		}
 		while ((quot_type = quot_isinvalid(line)) != "")
@@ -94,7 +109,6 @@ int main(int, char**, char **envp)
 			}
 		}
 		free(cline);
-		free(cwd);
 	}
 
 }

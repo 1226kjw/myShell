@@ -11,10 +11,23 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 		"cd",
 		[](vector<string> cmd)->int {
 			int res = 0;
-			if (cmd.size() == 1 || cmd[1] == "~")
+			if (cmd.size() == 1)
 				res = chdir(envm["HOME"].c_str());
+			else if (cmd[1] == "-")
+			{
+				string oldpwd = envm["OLDPWD"];
+				char * tmp = getcwd(0, 0);
+				envm["OLDPWD"] = tmp;
+				free(tmp);
+				cout << oldpwd << endl;
+				res = chdir(oldpwd.c_str());
+			}
 			else
+			{
+				if (cmd[1][0] == '~')
+					cmd[1].replace(0, 1, envm["HOME"]);
 				res = chdir(cmd[1].c_str());
+			}
 			if (res == 0)
 			{
 				char *tmp = getcwd(0, 0);
@@ -201,8 +214,13 @@ int Command::execute(void)
 			{
 				if (s[i+1] == '?')
 				{
-					s = s.substr(0, i - 1) + std::to_string(ret) + s.substr(i + 2);
+					s = s.substr(0, i) + std::to_string(ret) + s.substr(i + 2);
 					i += std::to_string(ret).size() - 1;
+				}
+				else if (s[i+1] == '$')
+				{
+					s = s.substr(0, i) + std::to_string(getpid()) + s.substr(i + 2);
+					i += std::to_string(getpid()).size() - 1;
 				}
 				else
 				{

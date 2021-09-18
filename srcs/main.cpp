@@ -32,7 +32,7 @@ string quot_isinvalid(string& s)
 	char quot = 0;
 	for (size_t i = 0; i < s.size(); i++)
 	{
-		if (!quot && isin(s[i], "\'\""))
+		if (!quot && isin(s[i], "\'\"`"))
 			quot = s[i];
 		else if (quot && quot == s[i])
 			quot = 0;
@@ -86,25 +86,28 @@ int main(int, char**, char **envp)
 	while (1)
 	{
 		string quot_type;
-		string line;
 		cline = readline(makePrompt().c_str());
-		if (cline == 0 || (line = cline) == "exit")
-		{
-			free(cline);
+		if (cline == 0)
 			exit(0);
-		}
+		string line = cline;
 		while ((quot_type = quot_isinvalid(line)) != "")
 			line += string("\n") + readline(quot_type.c_str());
 		if ((line = strip(line)) != "")
 			add_history(cline);
-		vector<string> v = split(line, ";");
-		for (auto i: v)
+		vector<string> split_next = split(line, ";");
+		for (auto i: split_next)
 		{
-			vector<string> w = split(i, "&&");
-			for (auto j: w)
+			vector<string> split_or = split(i, "||");
+			for (auto j: split_or)
 			{
-				ret = run_cmd(j);
-				if (ret != 0)
+				vector<string> split_and = split(j, "&&");
+				for (auto k: split_and)
+				{
+					ret = run_cmd(j);
+					if (ret != 0)
+						break ;
+				}
+				if (ret == 0)
 					break ;
 			}
 		}

@@ -12,7 +12,12 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 		[](vector<string> cmd)->int {
 			int res = 0;
 			if (cmd.size() == 1)
+			{
+				char * tmp = getcwd(0, 0);
+				envm["OLDPWD"] = tmp;
+				free(tmp);
 				res = chdir(envm["HOME"].c_str());
+			}
 			else if (cmd[1] == "-")
 			{
 				string oldpwd = envm["OLDPWD"];
@@ -26,12 +31,16 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			{
 				if (cmd[1][0] == '~')
 					cmd[1].replace(0, 1, envm["HOME"]);
+				char * tmp = getcwd(0, 0);
+				envm["OLDPWD"] = tmp;
+				free(tmp);
 				res = chdir(cmd[1].c_str());
 			}
 			if (res == 0)
 			{
 				char *tmp = getcwd(0, 0);
 				string stmp(tmp);
+				envm["PWD"] = stmp;
 				free(tmp);
 				jd.push_back(make_pair(stmp.substr(stmp.rfind("/") + 1), stmp));
 			}
@@ -120,6 +129,17 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			else
 				return builtin["cd"](cmd);
 		}
+	},
+	{//exit
+		"exit",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+				exit(0);
+			if (std::isdigit(cmd[1][0]))
+				exit(stoi(cmd[1]));
+			else
+				exit(0);
+		}
 	}
 };
 
@@ -194,7 +214,7 @@ int Command::execute(void)
 		for (auto i : cmd_alias)
 			cmd_vec.insert(cmd_vec.begin() + pos++, i);
 	}
-	auto func = [this](string s)->string{
+	auto func = [this](string s)->string{//interpret env, remove outer quotes
 		char quot = 0;
 		for (size_t i = 0; i < s.size(); i++)
 		{
@@ -290,6 +310,7 @@ int Command::execute(void)
 				while (!cin.eof())
 				{
 					string line;
+					cout << i.second << "> ";
 					getline(cin, line);
 					if (line == i.second)
 						break;

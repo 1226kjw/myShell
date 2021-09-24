@@ -72,6 +72,7 @@ string makePrompt(void)
 int main(int, char**, char **envp)
 {
 	alias["ls"] = "ls --color=tty";
+	alias["grep"] = "grep --color=auto";
 	char *tmp = getcwd(0, 0);
 	string stmp(tmp);
 	free(tmp);

@@ -289,9 +289,15 @@ int Command::execute(void)
 	std::transform(redin.begin(), redin.end(), redin.begin(), [func](auto i){return make_pair(i.first, func(i.second));});
 	std::transform(redout.begin(), redout.end(), redout.begin(), [func](auto i){return make_pair(i.first, func(i.second));});
 	std::transform(cmd_vec.begin(), cmd_vec.end(), cmd_vec.begin(), [func](auto i){return func(i);});
+	bool stdflag = false;
+	if (cmd_vec[0] == "stdout")
+	{
+		stdflag = true;
+		cmd_vec.erase(cmd_vec.begin());
+	}
 	if (builtin.find(cmd_vec[0]) != builtin.end())
 		return builtin[cmd_vec[0]](cmd_vec);
-	else if (pid_t pid = fork() == 0)
+	else if (fork() == 0)
 	{
 		for (auto i : redin)
 		{
@@ -361,6 +367,8 @@ int Command::execute(void)
 		}
 		else
 		{
+			if (stdflag)
+				cout << ss.str();
 			dup2(stdout_fd, STDOUT_FILENO);
 			for (auto i : redout)
 			{

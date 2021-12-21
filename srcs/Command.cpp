@@ -7,6 +7,45 @@ extern vector<pair<string, string>> jd;
 
 stringstream Command::ss;
 map<string, std::function<int(vector<string>)>> Command::builtin = {
+	{//:
+		":",
+		[](vector<string> cmd)->int {
+			(void)cmd;
+			return 0;
+		}
+	},
+	{//alias
+		"alias",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+			{
+				for (auto i : alias)
+					cout << i.first << "='" << i.second << "'" << endl;
+			}
+			else
+			{
+				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
+				{
+					size_t pos = 0;
+					string key = i->substr(0, pos = i->find("="));
+					string value;
+					if (pos != string::npos)
+						value = i->substr(pos + 1);
+					if (isin(value.front(), "'\"") && value.front() == value.back())
+						value = value.substr(1, value.size()-2);
+					alias[key] = value;
+				}
+			}
+			return 0;
+		}
+	},
+	{//bg
+		"bg",
+		[](vector<string> cmd)->int {
+			(void)cmd;
+			return 0;
+		}
+	},
 	{//cd
 		"cd",
 		[](vector<string> cmd)->int {
@@ -80,31 +119,6 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			return 0;
 		}
 	},
-	{//alias
-		"alias",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-			{
-				for (auto i : alias)
-					cout << i.first << "='" << i.second << "'" << endl;
-			}
-			else
-			{
-				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
-				{
-					size_t pos = 0;
-					string key = i->substr(0, pos = i->find("="));
-					string value;
-					if (pos != string::npos)
-						value = i->substr(pos + 1);
-					if (isin(value.front(), "'\"") && value.front() == value.back())
-						value = value.substr(1, value.size()-2);
-					alias[key] = value;
-				}
-			}
-			return 0;
-		}
-	},
 	{//unalias
 		"unalias",
 		[](vector<string> cmd)->int {
@@ -142,7 +156,6 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 		}
 	}
 };
-
 
 Command::Command() {}
 Command::Command(string raw, bool isfirst, bool islast): valid(1), isfirst(isfirst), islast(islast)

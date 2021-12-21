@@ -21,6 +21,7 @@
 # include <readline/readline.h>
 # include <readline/history.h>
 # include "Command.hpp"
+# include "parse.hpp"
 
 # define COLOR_BLUE "\033[1;34m"
 # define COLOR_RED "\033[1;31m"
@@ -38,6 +39,7 @@ using std::set;
 using std::stringstream;
 using std::cerr;
 
+int run_cmd(string cmd);
 string strip(string s);
 string paintString(string s, string color);
 char **vec2cstr(vector<string> s);
@@ -47,6 +49,7 @@ pair<string, int> nextword(string &line, int start, string divide);
 string random_string(int len);
 bool isin(char c, string s);
 bool isin(string c, string s);
+string get_first_token(string s);
 std::string regex_replace(const string& input, const std::regex& regex, 
 		std::function<string(std::smatch const&)> format);
 

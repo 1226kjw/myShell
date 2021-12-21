@@ -30,6 +30,8 @@ void deletearr(char **arr)
 
 vector<string> split(string line, string divide)
 {
+	if (line == "")
+		return vector<string>();
 	if (divide.size() == 0)
 	{
 		vector<string> v(1, string(line));
@@ -63,7 +65,7 @@ pair<string, int> nextword(string &line, int start, string divide)
 {
 	unsigned int i,j;
 	char quot = 0;
-	for (i=start,j=start; j < line.size();)
+	for (i = start,j = start; j < line.size();)
 	{
 		if (!quot && isin(line[j], divide))
 		{
@@ -86,21 +88,21 @@ string random_string(int len)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_int_distribution<int> dis(0, 10*26*3-1);
+	std::uniform_int_distribution<int> dis(0, 10 * 26 * 3 - 1);
 	stringstream ss;
 	for (int i = 0; i < len; i++)
 	{
 		int num = dis(gen);
-		switch (num%3)
+		switch (num % 3)
 		{
 		case 0:
-			ss << static_cast<char>('0' + num%10);
+			ss << static_cast<char>('0' + num % 10);
 			break;
 		case 1:
-			ss << static_cast<char>('a' + num%26);
+			ss << static_cast<char>('a' + num % 26);
 			break;
 		case 2:
-			ss << static_cast<char>('A' + num%26);
+			ss << static_cast<char>('A' + num % 26);
 			break;
 		default:
 			ss << '_';
@@ -118,4 +120,19 @@ bool isin(char c, string s)
 bool isin(string c, string s)
 {
 	return s.find(c) != string::npos;
+}
+
+string get_first_token(string s)
+{
+	size_t i = 0;
+	while (i < s.size() && isin(s[i], " ;"))
+		++i;
+	s = s.substr(i);
+	vector<string> t = split(s, " ");
+	if (t.size() == 0)
+		return "";
+	vector<string> t2 = split(t[0], ";");
+	if (t2.size() == 0)
+		return "";
+	return t2[0];
 }

@@ -1,161 +1,11 @@
 #include "myshell.hpp"
 
 extern int ret;
-extern map<string, string> envm;
+extern map<string, pair<bool, string>> envm;
 extern map<string, string> alias;
 extern vector<pair<string, string>> jd;
 
 stringstream Command::ss;
-map<string, std::function<int(vector<string>)>> Command::builtin = {
-	{//:
-		":",
-		[](vector<string> cmd)->int {
-			(void)cmd;
-			return 0;
-		}
-	},
-	{//alias
-		"alias",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-			{
-				for (auto i : alias)
-					cout << i.first << "='" << i.second << "'" << endl;
-			}
-			else
-			{
-				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
-				{
-					size_t pos = 0;
-					string key = i->substr(0, pos = i->find("="));
-					string value;
-					if (pos != string::npos)
-						value = i->substr(pos + 1);
-					if (isin(value.front(), "'\"") && value.front() == value.back())
-						value = value.substr(1, value.size()-2);
-					alias[key] = value;
-				}
-			}
-			return 0;
-		}
-	},
-	{//bg
-		"bg",
-		[](vector<string> cmd)->int {
-			(void)cmd;
-			return 0;
-		}
-	},
-	{//cd
-		"cd",
-		[](vector<string> cmd)->int {
-			int res = 0;
-			if (cmd.size() == 1)
-			{
-				char * tmp = getcwd(0, 0);
-				envm["OLDPWD"] = tmp;
-				free(tmp);
-				res = chdir(envm["HOME"].c_str());
-			}
-			else if (cmd[1] == "-")
-			{
-				string oldpwd = envm["OLDPWD"];
-				char * tmp = getcwd(0, 0);
-				envm["OLDPWD"] = tmp;
-				free(tmp);
-				cout << oldpwd << endl;
-				res = chdir(oldpwd.c_str());
-			}
-			else
-			{
-				if (cmd[1][0] == '~')
-					cmd[1].replace(0, 1, envm["HOME"]);
-				char * tmp = getcwd(0, 0);
-				envm["OLDPWD"] = tmp;
-				free(tmp);
-				res = chdir(cmd[1].c_str());
-			}
-			if (res == 0)
-			{
-				char *tmp = getcwd(0, 0);
-				string stmp(tmp);
-				envm["PWD"] = stmp;
-				free(tmp);
-				jd.push_back(make_pair(stmp.substr(stmp.rfind("/") + 1), stmp));
-			}
-			else
-				cerr << SHELL << ": " << strerror(errno) << ": " << cmd[1] << endl;
-			return res;
-		}
-	},
-	{//export
-		"export",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-			{
-				for (auto i : envm)
-					cout << i.first << "=" << i.second << endl;
-			}
-			else
-			{
-				for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
-				{
-					size_t pos = 0;
-					string key = i->substr(0, pos = i->find("="));
-					string value;
-					if (pos != string::npos)
-						value = i->substr(pos + 1);
-					envm[key] = value;
-				}
-			}
-			return 0;
-		}
-	},
-	{//unset
-		"unset",
-		[](vector<string> cmd)->int {
-			for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
-				envm.erase(*i);
-			return 0;
-		}
-	},
-	{//unalias
-		"unalias",
-		[](vector<string> cmd)->int {
-			for (auto i = cmd.begin() + 1; i != cmd.end(); i++)
-				alias.erase(*i);
-			return 0;
-		}
-	},
-	{//jd
-		"jd",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-			{
-				for (auto i = jd.rbegin(); i != jd.rend(); i++)
-					cout << i->first << "=" << i->second << endl;
-				return 0;
-			}
-			auto jump = std::find_if(jd.rbegin(), jd.rend(),
-						[cmd](auto i) {return i.first == cmd[1];});
-			if (jd.rend() != jump)
-				return chdir(jump->second.c_str());
-			else
-				return builtin["cd"](cmd);
-		}
-	},
-	{//exit
-		"exit",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-				exit(0);
-			if (std::isdigit(cmd[1][0]))
-				exit(stoi(cmd[1]));
-			else
-				exit(0);
-		}
-	}
-};
 
 Command::Command() {}
 Command::Command(string raw, bool isfirst, bool islast): valid(1), isfirst(isfirst), islast(islast)
@@ -285,7 +135,7 @@ int Command::execute(void)
 						key = s.substr(j, i - j);
 					string value;
 					if (key.size() > 0 && envm.find(key) != envm.end())
-						value = envm[key];
+						value = envm[key].second;
 					else if (key.size() > 0)
 						value = "";
 					else
@@ -310,6 +160,17 @@ int Command::execute(void)
 	}
 	if (builtin.find(cmd_vec[0]) != builtin.end())
 		return builtin[cmd_vec[0]](cmd_vec);
+	else if (std::count(cmd_vec[0].begin(), cmd_vec[0].end(), '=') == 1 && cmd_vec[0][0] != '=')
+	{
+		vector<string> keyval = split(cmd_vec[0], "=");
+		if (keyval.size() == 1)
+			keyval.push_back("");
+		if (envm.find(keyval[0]) != envm.end())
+			envm[keyval[0]].second = keyval[1];
+		else
+			envm[keyval[0]] = make_pair(false, keyval[1]);
+		return 0;
+	}
 	else if (fork() == 0)
 	{
 		for (auto i : redin)

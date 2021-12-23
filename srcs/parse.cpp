@@ -128,6 +128,7 @@ void parse_for(string s)
 	// 		break;		
 	// 	command(comd);
 	// }
+	(void)s;
 }
 
 void command(string s)
@@ -161,7 +162,7 @@ void command(string s)
 				vector<string> split_and = split(j, "&&");
 				for (auto k: split_and)
 				{
-					ret = run_cmd(j);
+					ret = run_cmd(strip(j));
 					if (ret != 0)
 						break ;
 				}

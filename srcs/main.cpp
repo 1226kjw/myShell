@@ -1,6 +1,6 @@
 #include "myshell.hpp"
 
-map<string, string> envm;
+map<string, pair<bool, string>> envm;
 map<string, string> alias;
 vector<pair<string, string>> jd;
 int	ret = 0;
@@ -106,7 +106,7 @@ string makePrompt(void)
 {
 	string prompt = (ret==0 ? paintString("✓ ", COLOR_GREEN) : paintString("✘ ", COLOR_RED));
 	if (envm.find("USER") != envm.end())
-		prompt += paintString(envm["USER"], COLOR_GREEN);
+		prompt += paintString(envm["USER"].second, COLOR_GREEN);
 	else
 		prompt += paintString(SHELL, COLOR_GREEN);
 	prompt += ":";
@@ -130,7 +130,44 @@ int main(int argc, char** argv, char **envp)
 	{
 		string t(envp[i]);
 		int m = t.find("=");
-		envm[t.substr(0, m)] = t.substr(m+1);
+		envm[t.substr(0, m)] = make_pair(true, t.substr(m+1));
+	}
+	if (argc != 1)
+	{
+		ifstream f;
+		f.open(argv[1]);
+		if (f.is_open())
+		{
+			string l;
+			while (!f.eof())
+			{
+				std::getline(f, l);
+				string line = l;
+				string prmt;
+				int c = 0;
+				while ((prmt = parsing(line) + quot_isinvalid(line, &c)) != "")
+				{
+					if (prmt.find("error") != string::npos)
+						break;
+					std::getline(f, l);
+					line += c?string("\n"):string(" ; ") + l;
+				}
+				line = strip(line);
+				if (prmt.find("error") != string::npos)
+				{
+					cerr << SHELL << ": syntax error" << endl;
+					continue;
+				}
+				command(line);
+			}
+			f.close();
+			return 0;
+		}
+		else
+		{
+			cerr << SHELL << ": " << argv[1] << ": " << strerror(errno) << endl;
+			return 127;
+		}
 	}
 	while (1)
 	{
@@ -138,7 +175,7 @@ int main(int argc, char** argv, char **envp)
 		cline = readline(makePrompt().c_str());
 		if (cline == 0)
 			exit(0);
-		string line = cline;
+		string line(cline);
 		string prmt;
 		int c = 0;
 		while ((prmt = parsing(line) + quot_isinvalid(line, &c)) != "")
@@ -146,7 +183,7 @@ int main(int argc, char** argv, char **envp)
 			if (prmt.find("error") != string::npos)
 				break;
 			free(cline);
-			line += c?string("\n"):string(" ; ") + (cline = readline((prmt + "> ").c_str()));
+			line += string(c?"\n":" ; ") + (cline = readline((prmt + "> ").c_str()));
 		}
 		if ((line = strip(line)) != "")
 			add_history(line.c_str());

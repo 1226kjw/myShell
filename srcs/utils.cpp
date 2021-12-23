@@ -51,7 +51,23 @@ vector<string> split(string line, string divide)
 		}
 		else
 			j++;
-		if (!quot && (line[j] == '\'' || line[j] == '\"'))
+		if (quot != '\'' && line[j] == '`')
+		{
+			string rand_s = random_string(10);
+			int i = j++;
+			while (j < line.size() && line[j] != '`')
+				++j;
+			string cmd = line.substr(i+1, j-i-1);
+			run_cmd(cmd + " > " + rand_s);
+			std::stringstream ss = stringstream("");
+			std::ifstream outf(rand_s);
+			ss << outf.rdbuf();
+			remove(rand_s.c_str());
+			string value = ss.str();
+			line = line.substr(0, i) + value + line.substr(j+1);
+			j = i;
+		}
+		else if (!quot && (isin(line[j], "'`\"")))
 			quot = line[j];
 		else if (quot && line[j] == quot)
 			quot = 0;
@@ -125,14 +141,21 @@ bool isin(string c, string s)
 string get_first_token(string s)
 {
 	size_t i = 0;
-	while (i < s.size() && isin(s[i], " ;"))
+	while (i < s.size() && isin(s[i], " \n\t;"))
 		++i;
-	s = s.substr(i);
-	vector<string> t = split(s, " ");
-	if (t.size() == 0)
+	if (i == s.size())
 		return "";
-	vector<string> t2 = split(t[0], ";");
-	if (t2.size() == 0)
-		return "";
-	return t2[0];
+	size_t j = i;
+	char quot = 0;
+	for (; i < s.size(); ++i)
+	{
+		if (!quot && isin(s[i], " \n\t;"))
+			break;
+		if (!quot && isin(s[i], "'\"`"))
+			quot = s[i];
+		else if (quot && s[i] == quot)
+			quot = 0;
+	}
+	--i;
+	return s.substr(j, i - j + 1);
 }

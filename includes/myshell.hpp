@@ -38,6 +38,7 @@ using std::map;
 using std::set;
 using std::stringstream;
 using std::cerr;
+using std::ifstream;
 
 int run_cmd(string cmd);
 string strip(string s);

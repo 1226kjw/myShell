@@ -40,6 +40,8 @@ using std::stringstream;
 using std::cerr;
 using std::ifstream;
 
+string quot_isinvalid(string& s, int *c);
+string parsing(string &s);
 int run_cmd(string cmd);
 string strip(string s);
 string paintString(string s, string color);

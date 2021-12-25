@@ -2,6 +2,80 @@
 
 extern int ret;
 
+string quot_isinvalid(string& s, int *c)
+{
+	char quot = 0;
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		if (!quot && isin(s[i], "\'\"`["))
+			quot = s[i];
+		else if (quot && (quot == s[i] || (quot == '[' && s[i] == ']')))
+			quot = 0;
+		if (!quot && (s[i] == '#' && (i == 0 || std::isspace(s[i-1]))))
+			s = s.substr(0, i);
+	}
+	if (quot)
+		*c = 1;
+	else
+		*c = 0;
+	switch (quot)
+	{
+	case '\'':
+		return "quote";
+	case '\"':
+		return "dquote";
+	case '`':
+		return "bquote";
+	case '[':
+		return "error";
+	default :
+		return "";
+	}
+	return "";
+}
+
+string parsing(string &s)
+{
+	map<string, string> p = {{"if","fi"},{"for","done"},{"while","done"}};
+	vector<string> v;
+	int ifcount = 0;
+	for (size_t i = 0; i < s.size(); ++i)
+	{
+		size_t j = i;
+		if (j == 0 || s[j] == '\n' || s[j] == ';')
+		{
+			if (j != 0)
+				++j;
+			if (j == s.size())
+				break;
+			while (isspace(s[j]))
+				++j;
+			
+			string token = get_first_token(s.substr(j));
+			if (token == "if")
+				++ifcount;
+			if (token == "if" || token == "for" || token == "while")
+				v.push_back(token);
+			else if (token == "fi" || token == "done")
+			{
+				if (!v.empty() && p[v.back()] == token)
+					v.pop_back();
+				else
+					return "error";
+			}
+			else if (token == "else")
+			{
+				--ifcount;
+				if (ifcount < 0)
+					return "error";
+			}
+		}
+	}
+	string prmt("");
+	for (size_t i = 0; i < v.size(); ++i)
+		prmt += v[i] + " ";
+	return prmt;
+}
 
 size_t if_nextend(string s, size_t j)
 {

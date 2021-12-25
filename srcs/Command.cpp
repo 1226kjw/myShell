@@ -105,6 +105,11 @@ int Command::execute(void)
 					s = s.substr(0, i) + std::to_string(getpid()) + s.substr(i + 2);
 					i += std::to_string(getpid()).size() - 1;
 				}
+				else if (s[i+1] == '#')
+				{
+					s = s.substr(0, i) + envm["#"].second + s.substr(i + 2);
+					i += envm["#"].second.size() - 1;
+				}
 				else
 				{
 					int j = ++i;
@@ -158,6 +163,8 @@ int Command::execute(void)
 		stdflag = true;
 		cmd_vec.erase(cmd_vec.begin());
 	}
+	else if (cmd_vec[0] == "eval")
+		cmd_vec.erase(cmd_vec.begin());
 	if (builtin.find(cmd_vec[0]) != builtin.end())
 		return builtin[cmd_vec[0]](cmd_vec);
 	else if (std::count(cmd_vec[0].begin(), cmd_vec[0].end(), '=') == 1 && cmd_vec[0][0] != '=')

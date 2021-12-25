@@ -27,81 +27,6 @@ int run_cmd(string cmd)
 	return ret;
 }
 
-string quot_isinvalid(string& s, int *c)
-{
-	char quot = 0;
-	for (size_t i = 0; i < s.size(); i++)
-	{
-		if (!quot && isin(s[i], "\'\"`["))
-			quot = s[i];
-		else if (quot && (quot == s[i] || (quot == '[' && s[i] == ']')))
-			quot = 0;
-		if (!quot && (s[i] == '#' && (i == 0 || std::isspace(s[i-1]))))
-			s = s.substr(0, i);
-	}
-	if (quot)
-		*c = 1;
-	else
-		*c = 0;
-	switch (quot)
-	{
-	case '\'':
-		return "quote";
-	case '\"':
-		return "dquote";
-	case '`':
-		return "bquote";
-	case '[':
-		return "error";
-	default :
-		return "";
-	}
-	return "";
-}
-
-string parsing(string &s)
-{
-	map<string, string> p = {{"if","fi"},{"for","done"},{"while","done"}};
-	vector<string> v;
-	int ifcount = 0;
-	for (size_t i = 0; i < s.size(); ++i)
-	{
-		size_t j = i;
-		if (j == 0 || s[j] == '\n' || s[j] == ';')
-		{
-			if (j != 0)
-				++j;
-			if (j == s.size())
-				break;
-			while (isspace(s[j]))
-				++j;
-			
-			string token = get_first_token(s.substr(j));
-			if (token == "if")
-				++ifcount;
-			if (token == "if" || token == "for" || token == "while")
-				v.push_back(token);
-			else if (token == "fi" || token == "done")
-			{
-				if (!v.empty() && p[v.back()] == token)
-					v.pop_back();
-				else
-					return "error";
-			}
-			else if (token == "else")
-			{
-				--ifcount;
-				if (ifcount < 0)
-					return "error";
-			}
-		}
-	}
-	string prmt("");
-	for (size_t i = 0; i < v.size(); ++i)
-		prmt += v[i] + " ";
-	return prmt;
-}
-
 string makePrompt(void)
 {
 	string prompt = (ret==0 ? paintString("✓ ", COLOR_GREEN) : paintString("✘ ", COLOR_RED));
@@ -132,12 +57,21 @@ int main(int argc, char** argv, char **envp)
 		int m = t.find("=");
 		envm[t.substr(0, m)] = make_pair(true, t.substr(m+1));
 	}
+	if (envm.find("SHLVL") != envm.end())
+		envm["SHLVL"].second = std::to_string(std::stoi(envm["SHLVL"].second)+1);
+	else
+		envm["SHLVL"] = make_pair(true, string("1"));
 	if (argc != 1)
 	{
 		ifstream f;
 		f.open(argv[1]);
 		if (f.is_open())
 		{
+			envm["#"] = make_pair(false, std::to_string(argc - 2));
+			for (int i = 1; i < argc; ++i)
+			{
+				envm[std::to_string(i-1)] = make_pair(false, string(argv[i]));
+			}
 			string l;
 			while (!f.eof())
 			{

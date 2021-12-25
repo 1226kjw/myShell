@@ -10,3 +10,10 @@ then
 else
 	echo $USER
 fi
+
+a=0
+while [ $a -le $# ]
+do
+	echo $`echo $a`
+	a=`expr $a + 1`
+done

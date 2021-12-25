@@ -4,6 +4,7 @@ extern int ret;
 extern map<string, pair<bool, string>> envm;
 extern map<string, string> alias;
 extern vector<pair<string, string>> jd;
+vector<string> dirs;
 
 map<string, std::function<int(vector<string>)>> Command::builtin = {
 	{//:
@@ -45,11 +46,11 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			return 0;
 		}
 	},
-	{
+	{//break
 		"break",
 		[](vector<string> cmd)->int {
 			(void)cmd;
-			return 1;
+			return 0;
 		}
 	},
 	{//cd
@@ -94,6 +95,73 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 			return res;
 		}
 	},
+	{//dirs
+		"dirs",
+		[](vector<string>)->int {
+			cout << envm["PWD"].second << ' ';
+			for (auto i = dirs.rbegin(); i != dirs.rend(); ++i)
+				cout << *i << ' ';
+			cout << endl;
+			return 0;
+		}
+	},
+	{//exec
+		"exec",
+		[](vector<string> cmd)->int {
+			cmd.erase(cmd.begin());
+			char **cmd_arr = vec2cstr(cmd);
+			if (execvp(cmd_arr[0], cmd_arr) == -1)
+			{
+				if (errno == 2)
+					cerr << SHELL << ": command not found: " << cmd_arr[0] << endl;
+				else
+					cerr << strerror(errno) << endl;
+			}
+			return ret;
+		}
+	},
+	{//exit
+		"exit",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+				exit(0);
+			if (std::isdigit(cmd[1][0]))
+				exit(stoi(cmd[1]));
+			else
+				exit(0);
+		}
+	},
+	{//enable
+		"enable",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+			{
+				for (auto i : builtin)
+					if (i.first.find("-n") == string::npos)
+						cout << "enable " << i.first << endl;
+			}
+			else if (cmd[1][0] == '-')
+			{
+				if (cmd[1][1] == 'a')
+					for (auto i : builtin)
+						cout << "enable " << i.first << endl;
+				else if (cmd[1][1] == 'n')
+				{
+					builtin[string("-n ") + cmd[2]] = builtin[cmd[2]];
+					builtin.erase(cmd[2]);
+				}
+			}
+			else if (cmd.size() == 2)
+			{
+				if (builtin.find(string("-n ") + cmd[1]) != builtin.end())
+				{
+					builtin[cmd[1]] = builtin[string("-n ") + cmd[1]];
+					builtin.erase(string("-n ") + cmd[1]);
+				}
+			}
+			return 0;
+		}
+	},
 	{//export
 		"export",
 		[](vector<string> cmd)->int {
@@ -116,6 +184,38 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 				}
 			}
 			return 0;
+		}
+	},
+	{//popd
+		"popd",
+		[](vector<string>)->int {
+			if (dirs.size() == 0)
+			{
+				cerr << SHELL << ": popd: directory stack empty" << endl;
+				return 1;
+			}
+			vector<string> c(2);
+			c[0] = "cd";
+			c[1] = dirs.back();
+			builtin["cd"](c);
+			dirs.pop_back();
+			builtin["dirs"](vector<string>(1, "dirs"));
+			return 0;
+		}
+	},
+	{//pushd
+		"pushd",
+		[](vector<string> cmd)->int {
+			if (cmd.size() == 1)
+				cmd.push_back("~");
+			dirs.push_back(envm["PWD"].second);
+			vector<string> c(2);
+			c[0] = "cd";
+			c[1] = cmd[1];
+			int t = builtin["cd"](c);
+			if (t == 0)
+				builtin["dirs"](vector<string>(1, "dirs"));
+			return t;
 		}
 	},
 	{//unset
@@ -149,17 +249,6 @@ map<string, std::function<int(vector<string>)>> Command::builtin = {
 				return chdir(jump->second.c_str());
 			else
 				return builtin["cd"](cmd);
-		}
-	},
-	{//exit
-		"exit",
-		[](vector<string> cmd)->int {
-			if (cmd.size() == 1)
-				exit(0);
-			if (std::isdigit(cmd[1][0]))
-				exit(stoi(cmd[1]));
-			else
-				exit(0);
 		}
 	}
 };
